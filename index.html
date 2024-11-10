@@ -37,6 +37,10 @@
 
         <div>
             <img :src="selectedItem?.img" alt="">
+            <template x-for="characteristic in selectedItem?.characteristics">
+                <img :src="'https://dofusdb.fr/icons/characteristics/' + characteristic?.asset + '.png'" class="m-1">
+                <label x-text="characteristic.min + '-' + characteristic.max "></label>
+            </template>
         </div>
     </main>
 
@@ -59,15 +63,24 @@
         }
 
         function selectSuggestion(suggestion) {
-            console.log(suggestion)
-            this.selectedItem = suggestion
-            this.query = suggestion.name.fr;
-            this.suggestions = [];
+            // Enrich characteristics
+            Promise.all(suggestion.effects.map((effect) => fetchCharacteristic(effect.characteristic)))
+                .then((characteristics) => {
+                    console.log(characteristics)
+                    this.query = suggestion.name.fr;
+                    this.suggestions = [];
+                    this.selectedItem = { characteristics, ...suggestion }
+                    console.log(this.selectedItem)
+                })
         }
 
         function fetchCharacteristic(characteristicId) {
             return fetch(`https://api.dofusdb.fr/characteristics/${characteristicId}`)
                 .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    return data
+                })
         }
 
         document.addEventListener('alpine:init', () => {
