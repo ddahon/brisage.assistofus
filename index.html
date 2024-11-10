@@ -19,9 +19,10 @@
 
     <!-- Main Content -->
     <main x-data="main" class="flex flex-col items-center  min-h-screen">
-        <div class="mt-44 w-1/2">
+        <div class="mt-44 mb-12 w-1/2">
             <input type="text" x-model="query" @input="fetchSuggestions" placeholder="Rechercher un objet..."
                 class="p-2 border border-gray-300 rounded w-full">
+            <!-- Suggestions dropdown -->
             <div x-show="suggestions.length > 0" class="mt-2">
                 <ul class="bg-white border border-gray-300 rounded shadow-lg">
                     <template x-for="suggestion in suggestions" :key="suggestion.id">
@@ -35,12 +36,22 @@
             </div>
         </div>
 
-        <div>
-            <img :src="selectedItem?.img" alt="">
-            <template x-for="characteristic in selectedItem?.characteristics">
-                <img :src="'https://dofusdb.fr/icons/characteristics/' + characteristic?.asset + '.png'" class="m-1">
-                <label x-text="characteristic.min + '-' + characteristic.max "></label>
-            </template>
+        <!-- Item card -->
+        <div x-show="selectedItem != null" class="bg-gray-600 border border-gray-300 rounded shadow-lg text-white">
+            <div class="flex flex-row p-4 items-center justify-between border-b-gray-300 border-b">
+                <h2 x-text="selectedItem.name.fr"></h2>
+                <img :src="selectedItem?.img" class="bg-gray-800 p-3 ml-3">
+            </div>
+
+            <ul>
+                <template x-for="stat in itemStats">
+                    <li class="pr-36 pl-3 py-2 hover:bg-green-500 cursor-pointer flex items-center ">
+                        <img :src="'https://dofusdb.fr/icons/characteristics/' + stat?.characteristicDetails?.asset + '.png'"
+                            class="mr-1">
+                        <label x-text="stat?.from + ' ' + stat?.characteristicDetails?.name?.fr"></label>
+                    </li>
+                </template>
+            </ul>
         </div>
     </main>
 
@@ -50,6 +61,12 @@
     </footer>
 
     <script>
+        function getStatRange(from, to) {
+            range = to == 0 ? `${from}` : `${from} à ${to}`
+            console.log(range)
+            return range
+        }
+
         function fetchSuggestions() {
             if (this.query.length > 0) {
                 fetch(`https://api.dofusdb.fr/items?typeId[$ne]=203&$sort=-id&typeId[$in][]=1&typeId[$in][]=9&typeId[$in][]=2&typeId[$in][]=3&typeId[$in][]=4&typeId[$in][]=5&typeId[$in][]=6&typeId[$in][]=7&typeId[$in][]=8&typeId[$in][]=19&typeId[$in][]=20&typeId[$in][]=21&typeId[$in][]=22&typeId[$in][]=114&typeId[$in][]=271&typeId[$in][]=11&typeId[$in][]=82&typeId[$in][]=17&typeId[$in][]=10&typeId[$in][]=16&slug.fr[$search]=${this.query}&level[$gte]=0&level[$lte]=200&$skip=0&lang=fr`)
@@ -64,23 +81,26 @@
 
         function selectSuggestion(suggestion) {
             // Enrich characteristics
-            Promise.all(suggestion.effects.map((effect) => fetchCharacteristic(effect.characteristic)))
-                .then((characteristics) => {
-                    console.log(characteristics)
+            fetchStats(suggestion)
+                .then((stats) => {
                     this.query = suggestion.name.fr;
                     this.suggestions = [];
-                    this.selectedItem = { characteristics, ...suggestion }
+                    this.selectedItem = suggestion
+                    this.itemStats = stats
                     console.log(this.selectedItem)
+                    console.log(this.itemStats)
                 })
+        }
+
+        function fetchStats(suggestion) {
+            return Promise.all(suggestion.effects.filter((effect) => effect.category == 0).map((effect) =>
+                fetchCharacteristic(effect.characteristic).then((characteristic) => ({ characteristicDetails: characteristic, range: getStatRange(effect.from, effect.to), ...effect })))
+            )
         }
 
         function fetchCharacteristic(characteristicId) {
             return fetch(`https://api.dofusdb.fr/characteristics/${characteristicId}`)
                 .then(response => response.json())
-                .then(data => {
-                    console.log(data)
-                    return data
-                })
         }
 
         document.addEventListener('alpine:init', () => {
@@ -88,6 +108,7 @@
                 query: '',
                 suggestions: [],
                 selectedItem: null,
+                itemStats: [],
                 selectSuggestion,
                 fetchSuggestions
             }))
