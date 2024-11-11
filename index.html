@@ -83,26 +83,48 @@
                 .then(response => response.json())
         }
 
-        function fetchAllRunes() {
-            fetchRunes()
-                .then(data => {
+        function fetchRunesPages() {
+            return fetchRunes()
+                .then((data) => {
                     let promises = []
                     for (let i = 0; i < data.total; i += 10) {
                         promises.push(fetchRunes(skip = i))
                     }
-                    Promise.all(promises).then((pages) => {
-                        this.allRunes = pages.reduce((acc, page) => {
-                            let runes = page.data.filter((rune) => rune?.effects.length > 0).reduce((acc2, rune) => ({ ...acc2, [rune?.effects[0]?.characteristic]: rune }), {})
-                            return { ...acc, ...runes }
-                        }, {})
-                        console.log(this.allRunes)
-                    })
+                    return Promise.all(promises)
                 })
+        }
+
+        function fetchAllRunes() {
+            fetchRunesPages()
+                .then((pages) => pages.map((page) => page.data).flat().filter((rune) => rune.effects.length > 0))
+                .then(fetchPowerRates)
+                .then(mapRunesToCharacteristics)
+                .then(console.log)
+
+                .then((runesMap) => this.allRunes = runesMap)
+                .then(() => console.log(this.allRunes))
+        }
+
+        function mapRunesToCharacteristics(runesList) {
+            return runesList.reduce((acc2, rune) => ({ ...acc2, [rune?.effects[0]?.characteristic]: rune }), {})
+        }
+
+        function fetchPowerRates(runes) {
+            return Promise.all(
+                runes.map((rune) =>
+                    fetchEffectPowerRate(rune?.possibleEffects[0].effectId)
+                        .then((x) => ({ effectPowerRate: x, diceNum: rune?.possibleEffects[0].diceNum, ...rune }))
+                ))
+        }
+
+        function fetchEffectPowerRate(effectId) {
+            return fetch(`https://api.dofusdb.fr/effects/${effectId}`)
+                .then((response) => response.json())
+                .then((data) => data.effectPowerRate)
         }
 
         function getStatRange(from, to) {
             range = to == 0 ? `${from}` : `${from} à ${to}`
-            console.log(range)
             return range
         }
 
@@ -120,14 +142,13 @@
 
         function selectSuggestion(suggestion) {
             // Enrich characteristics
+            console.log(`Selected: ${suggestion}`)
             fetchStats(suggestion)
                 .then((stats) => {
                     this.query = suggestion.name.fr;
                     this.suggestions = [];
                     this.selectedItem = suggestion
                     this.itemStats = stats
-                    console.log(this.selectedItem)
-                    console.log(this.itemStats)
                 })
         }
 
