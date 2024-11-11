@@ -36,22 +36,39 @@
             </div>
         </div>
 
-        <!-- Item card -->
-        <div x-show="selectedItem != null" class="bg-gray-600 border border-gray-300 rounded shadow-lg text-white">
-            <div class="flex flex-row p-4 items-center justify-between border-b-gray-300 border-b">
-                <h2 x-text="selectedItem.name.fr"></h2>
-                <img :src="selectedItem?.img" class="bg-gray-800 p-3 ml-3">
+
+        <div x-show="selectedItem != null" class="w-1/2  flex flex-row grow space-x-10">
+            <!-- Item card -->
+            <div class="bg-gray-600 border border-gray-300 rounded shadow-lg  w-1/2 text-white">
+                <div class="flex flex-row p-4 items-center justify-between border-b-gray-300 border-b h-32">
+                    <h2 x-text="selectedItem?.name?.fr"></h2>
+                    <img :src="selectedItem?.img" class="bg-gray-800 p-3 ml-3">
+                </div>
+                <ul>
+                    <template x-for="stat in itemStats">
+                        <li class="pr-36 pl-3 py-2 hover:bg-green-500 cursor-pointer flex items-center ">
+                            <img :src="'https://dofusdb.fr/icons/characteristics/' + stat?.characteristicDetails?.asset + '.png'"
+                                class="mr-1">
+                            <label x-text="stat?.from + ' ' + stat?.characteristicDetails?.name?.fr"></label>
+                        </li>
+                    </template>
+                </ul>
             </div>
 
-            <ul>
-                <template x-for="stat in itemStats">
-                    <li class="pr-36 pl-3 py-2 hover:bg-green-500 cursor-pointer flex items-center ">
-                        <img :src="'https://dofusdb.fr/icons/characteristics/' + stat?.characteristicDetails?.asset + '.png'"
-                            class="mr-1">
-                        <label x-text="stat?.from + ' ' + stat?.characteristicDetails?.name?.fr"></label>
-                    </li>
-                </template>
-            </ul>
+            <!-- Runes Preview -->
+            <div class="bg-gray-600 border border-gray-300 rounded shadow-lg  w-1/2 text-white">
+                <div class="flex flex-row p-4 items-center border-b-gray-300 border-b h-32">
+                    <h2 x-text="focusedStat == null ? 'Aucun focus' : focusedStat?.name?.fr">
+                    </h2>
+                </div>
+                <ul>
+                    <template x-for="stat in itemStats">
+                        <li class="pr-36 pl-3 py-2 flex items-center ">
+                            <img :src="stat?.rune?.img" class="mr-1 w-8 h-8 ">
+                        </li>
+                    </template>
+                </ul>
+            </div>
         </div>
     </main>
 
@@ -61,6 +78,28 @@
     </footer>
 
     <script>
+        function fetchRunes(skip = 0) {
+            return fetch(`https://api.dofusdb.fr/items?typeId[$ne]=203&$sort=-id&slug.fr[$search]=&typeId[$in][]=78&level[$gte]=0&level[$lte]=200&$skip=${skip}&lang=fr`)
+                .then(response => response.json())
+        }
+
+        function fetchAllRunes() {
+            fetchRunes()
+                .then(data => {
+                    let promises = []
+                    for (let i = 0; i < data.total; i += 10) {
+                        promises.push(fetchRunes(skip = i))
+                    }
+                    Promise.all(promises).then((pages) => {
+                        this.allRunes = pages.reduce((acc, page) => {
+                            let runes = page.data.filter((rune) => rune?.effects.length > 0).reduce((acc2, rune) => ({ ...acc2, [rune?.effects[0]?.characteristic]: rune }), {})
+                            return { ...acc, ...runes }
+                        }, {})
+                        console.log(this.allRunes)
+                    })
+                })
+        }
+
         function getStatRange(from, to) {
             range = to == 0 ? `${from}` : `${from} à ${to}`
             console.log(range)
@@ -94,7 +133,7 @@
 
         function fetchStats(suggestion) {
             return Promise.all(suggestion.effects.filter((effect) => effect.category == 0).map((effect) =>
-                fetchCharacteristic(effect.characteristic).then((characteristic) => ({ characteristicDetails: characteristic, range: getStatRange(effect.from, effect.to), ...effect })))
+                fetchCharacteristic(effect.characteristic).then((characteristic) => ({ characteristicDetails: characteristic, range: getStatRange(effect.from, effect.to), rune: this.allRunes[characteristic.id], ...effect })))
             )
         }
 
@@ -104,11 +143,14 @@
         }
 
         document.addEventListener('alpine:init', () => {
+            fetchAllRunes()
             Alpine.data('main', () => ({
                 query: '',
                 suggestions: [],
                 selectedItem: null,
                 itemStats: [],
+                focusedStat: null,
+                allRunes: null,
                 selectSuggestion,
                 fetchSuggestions
             }))
