@@ -62,9 +62,10 @@
                     </h2>
                 </div>
                 <ul>
-                    <template x-for="stat in itemStats">
+                    <template x-for="rune in generatedRunes">
                         <li class="pr-36 pl-3 py-2 flex items-center ">
-                            <img :src="stat?.rune?.img" class="mr-1 w-8 h-8 ">
+                            <img :src="rune?.img" class="mr-1 w-8 h-8 ">
+                            <label x-text="rune?.nbGenerated"></label>
                         </li>
                     </template>
                 </ul>
@@ -78,6 +79,15 @@
     </footer>
 
     <script>
+        function getGeneratedRunes(stats, level, multiplier) {
+            let generatedRunes = stats.map((stat) => {
+                let roll = stat.to == 0 && stat.from > 0 ? stat.from : (stat.from + stat.to) / 2 //TODO get this from input
+                let n = (multiplier * 3 * roll * stat.rune.effectPowerRate * level / 200 + 1) / (stat.rune.diceNum * stat.rune.effectPowerRate)
+                return { nbGenerated: n, ...stat.rune }
+            })
+            return generatedRunes
+        }
+
         function fetchRunes(skip = 0) {
             return fetch(`https://api.dofusdb.fr/items?typeId[$ne]=203&$sort=-id&slug.fr[$search]=&typeId[$in][]=78&level[$gte]=0&level[$lte]=200&$skip=${skip}&lang=fr`)
                 .then(response => response.json())
@@ -100,7 +110,6 @@
                 .then(fetchPowerRates)
                 .then(mapRunesToCharacteristics)
                 .then((runesMap) => this.allRunes = runesMap)
-                .then(() => console.log(this.allRunes))
         }
 
         function mapRunesToCharacteristics(runesList) {
@@ -143,10 +152,12 @@
             console.log(`Selected: ${suggestion}`)
             fetchStats(suggestion)
                 .then((stats) => {
+                    console.log(stats)
                     this.query = suggestion.name.fr;
                     this.suggestions = [];
                     this.selectedItem = suggestion
                     this.itemStats = stats
+                    this.generatedRunes = getGeneratedRunes(stats, suggestion.level, this.breakMultiplier)
                 })
         }
 
@@ -170,6 +181,8 @@
                 itemStats: [],
                 focusedStat: null,
                 allRunes: null,
+                breakMultiplier: 0.5, //TODO: put a field for this
+                generatedRunes: [],
                 selectSuggestion,
                 fetchSuggestions
             }))
