@@ -99,8 +99,6 @@
                 .then((pages) => pages.map((page) => page.data).flat().filter((rune) => rune.effects.length > 0))
                 .then(fetchPowerRates)
                 .then(mapRunesToCharacteristics)
-                .then(console.log)
-
                 .then((runesMap) => this.allRunes = runesMap)
                 .then(() => console.log(this.allRunes))
         }
