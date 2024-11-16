@@ -51,13 +51,14 @@
                     <p>Aucun focus</p>
                 </label>
                 <template x-for="stat in itemStats">
-                    <label :for="stat.characteristic"
+                    <label :for="stat.characteristic + 'focus'"
                         :class="`${focusedStat == stat ? 'bg-green-500' : ''} pr-36 pl-3 py-2 hover:bg-green-500 cursor-pointer flex items-center`">
                         <img :src="'https://dofusdb.fr/icons/characteristics/' + stat?.characteristicDetails?.asset + '.png'"
                             class="mr-1">
-                        <input :id="stat.characteristic" name="focus" type="radio" :value="stat"
+                        <input :id="stat.characteristic + 'focus'" name="focus" type="radio" :value="stat"
                             @input="selectFocus(stat)" class="w-0 h-0 opacity-0 absolute" />
-                        <p x-text="stat?.from + ' ' + stat?.characteristicDetails?.name?.fr">
+                        <input type="text" :id="stat?.characteristic + 'value'" class="text-black" x-model="stat.roll">
+                        <p x-text=" stat?.characteristicDetails?.name?.fr">
                     </label>
             </div>
             </template>
@@ -101,19 +102,17 @@
                 return
             }
             this.generatedRunes = getGeneratedRunes(this.itemStats, this.selectedItem?.level, this.breakCoefficient / 100, this.focusedStat)
-            console.log(this.generatedRunes);
         }
 
         function getGeneratedRunes(stats, level, multiplier, focusedStat) {
-            console.log(focusedStat)
             let generatedRunes = stats.map((stat) => {
-                let roll = stat.to == 0 && stat.from > 0 ? stat.from : (stat.from + stat.to) / 2 //TODO get this from input
-                let n = (multiplier * 3 * roll * stat.rune.effectPowerRate * level / 200 + 1) / (stat.rune.diceNum * stat.rune.effectPowerRate)
+                let n = (multiplier * 3 * stat?.roll * stat.rune.effectPowerRate * level / 200 + 1) / (stat.rune.diceNum * stat.rune.effectPowerRate)
                 return { nbGenerated: n, stat }
             })
             if (focusedStat != null) {
                 let n = generatedRunes.reduce((acc, rune) => {
                     if (rune.stat.id == focusedStat.id) {
+                        console.log(focusedStat.id)
                         return acc + rune.nbGenerated
                     } else {
                         return acc + (rune.nbGenerated < 0 ? 0.05 : 0.5) * rune.nbGenerated
@@ -193,13 +192,17 @@
                     this.suggestions = [];
                     this.selectedItem = suggestion
                     this.itemStats = stats
-                    this.refreshGeneratedRunes()
+                    this.refreshGeneratedRunes(this.itemStats, this.selectedItem, this.breakCoefficient)
                 })
+        }
+
+        function getRoll(from, to) {
+            return (to == 0 && from > 0) ? from : Math.floor((from + to) / 2)
         }
 
         function fetchStats(suggestion) {
             return Promise.all(suggestion.effects.filter((effect) => effect.category == 0).map((effect) =>
-                fetchCharacteristic(effect.characteristic).then((characteristic) => ({ characteristicDetails: characteristic, range: getStatRange(effect.from, effect.to), rune: this.allRunes[characteristic.id], ...effect })))
+                fetchCharacteristic(effect.characteristic).then((characteristic) => ({ characteristicDetails: characteristic, range: getStatRange(effect.from, effect.to), rune: this.allRunes[characteristic.id], roll: this.getRoll(effect.from, effect.to), ...effect })))
             )
         }
 
@@ -211,6 +214,9 @@
         document.addEventListener('alpine:init', () => {
             fetchAllRunes()
             Alpine.data('main', () => ({
+                init() {
+                    this.$watch('itemStats', () => this.refreshGeneratedRunes())
+                },
                 query: '',
                 suggestions: [],
                 selectedItem: null,
