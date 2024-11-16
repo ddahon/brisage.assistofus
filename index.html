@@ -111,8 +111,7 @@
             })
             if (focusedStat != null) {
                 let n = generatedRunes.reduce((acc, rune) => {
-                    if (rune.stat.id == focusedStat.id) {
-                        console.log(focusedStat.id)
+                    if (rune.stat.characteristic == focusedStat.characteristic) {
                         return acc + rune.nbGenerated
                     } else {
                         return acc + (rune.nbGenerated < 0 ? 0.05 : 0.5) * rune.nbGenerated
