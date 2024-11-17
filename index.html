@@ -57,7 +57,8 @@
                             class="mr-1">
                         <input :id="stat.characteristic + 'focus'" name="focus" type="radio" :value="stat"
                             @input="selectFocus(stat)" class="w-0 h-0 opacity-0 absolute" />
-                        <input type="text" :id="stat?.characteristic + 'value'" class="text-black" x-model="stat.roll">
+                        <input type="text" :id="stat?.characteristic + 'value'" class="text-black"
+                            x-model.number="stat.roll">
                         <p x-text=" stat?.characteristicDetails?.name?.fr">
                     </label>
             </div>
@@ -105,7 +106,7 @@
         function getGeneratedRunes(stats, level, multiplier, focusedStat) {
             if (focusedStat != null) {
                 let n = stats.reduce((acc, stat) => {
-                    let weight = (multiplier * 3 * stat?.roll * stat.rune.effectPowerRate * level / 200 + 1)
+                    let weight = multiplier * (3 * stat?.roll * stat.rune.effectPowerRate * level / 200 + 1)
                     let coeff = 1
                     if (stat.characteristic != focusedStat.characteristic) {
                         coeff = (stat?.roll < 0 ? 0.05 : 0.5)
@@ -116,7 +117,7 @@
                 return [{ nbGenerated, stat: focusedStat }]
             } else {
                 let generatedRunes = stats.map((stat) => {
-                    let n = (multiplier * 3 * stat?.roll * stat.rune.effectPowerRate * level / 200 + 1) / (stat.rune.diceNum * stat.rune.effectPowerRate)
+                    let n = multiplier * (3 * stat?.roll * stat.rune.effectPowerRate * level / 200 + 1) / (stat.rune.diceNum * stat.rune.effectPowerRate)
                     return { nbGenerated: n, stat }
                 })
                 return generatedRunes.filter((r) => r.nbGenerated >= 0)
@@ -148,7 +149,12 @@
         }
 
         function mapRunesToCharacteristics(runesList) {
-            return runesList.reduce((acc2, rune) => ({ ...acc2, [rune?.effects[0]?.characteristic]: rune }), {})
+            return runesList.reduce((acc, rune) => {
+                let index = rune?.effects[0]?.characteristic
+                if (!(index in acc) || acc[index].diceNum > rune.diceNum) {
+                    return { ...acc, [index]: rune }
+                }
+            }, {})
         }
 
         function fetchPowerRates(runes) {
