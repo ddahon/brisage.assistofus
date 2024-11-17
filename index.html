@@ -52,11 +52,13 @@
                 </label>
                 <template x-for="stat in itemStats">
                     <label :for="stat.characteristic + 'focus'"
-                        :class="`${focusedStat == stat ? 'bg-green-500' : ''} pr-36 pl-3 py-2 hover:bg-green-500 cursor-pointer flex items-center`">
+                        :class="`${focusedStat == stat ? 'bg-green-500' : ''} pr-36 pl-3 py-2 ${isFocusable(stat) ? 'hover:bg-green-500 cursor-pointer' : ''} flex items-center`">
                         <img :src="'https://dofusdb.fr/icons/characteristics/' + stat?.characteristicDetails?.asset + '.png'"
                             class="mr-1">
-                        <input :id="stat.characteristic + 'focus'" name="focus" type="radio" :value="stat"
-                            @input="selectFocus(stat)" class="w-0 h-0 opacity-0 absolute" />
+                        <template x-if="isFocusable(stat)">
+                            <input :id="stat.characteristic + 'focus'" name="focus" type="radio" :value="stat"
+                                @input="selectFocus(stat)" class="w-0 h-0 opacity-0 absolute" />
+                        </template>
                         <input type="text" :id="stat?.characteristic + 'value'" class="text-black"
                             x-model.number="stat.roll">
                         <p x-text=" stat?.characteristicDetails?.name?.fr">
@@ -91,6 +93,10 @@
     </footer>
 
     <script>
+        function isFocusable(stat) {
+            return stat.roll > 0 && this.itemStats.filter(x => x.roll > 0).length > 1
+        }
+
         function selectFocus(stat) {
             this.focusedStat = stat
             this.refreshGeneratedRunes()
@@ -196,6 +202,8 @@
                     this.suggestions = [];
                     this.selectedItem = suggestion
                     this.itemStats = stats
+                    this.focusedStat = null
+                    this.breakCoefficient = 100
                     this.refreshGeneratedRunes(this.itemStats, this.selectedItem, this.breakCoefficient)
                 })
         }
@@ -206,7 +214,12 @@
 
         function fetchStats(suggestion) {
             return Promise.all(suggestion.effects.filter((effect) => effect.category == 0).map((effect) =>
-                fetchCharacteristic(effect.characteristic).then((characteristic) => ({ characteristicDetails: characteristic, range: getStatRange(effect.from, effect.to), rune: this.allRunes[characteristic.id], roll: this.getRoll(effect.from, effect.to), ...effect })))
+                fetchCharacteristic(effect.characteristic).then((characteristic) => ({
+                    characteristicDetails: characteristic,
+                    range: getStatRange(effect.from, effect.to),
+                    rune: this.allRunes[characteristic.id],
+                    roll: this.getRoll(effect.from, effect.to), ...effect
+                })))
             )
         }
 
@@ -232,7 +245,8 @@
                 selectSuggestion,
                 fetchSuggestions,
                 refreshGeneratedRunes,
-                selectFocus
+                selectFocus,
+                isFocusable
             }))
         })
     </script>
