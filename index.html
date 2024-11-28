@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculateur Brisage Dofus</title>
+    <title>Assistofus - Brisage</title>
     <!-- Tailwind CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/forms@0.5.9/src/index.min.js" defer></script>
@@ -15,7 +15,7 @@
 <body class="bg-gray-100">
     <!-- Header -->
     <header class="bg-blue-600 text-white p-4">
-        <h1 class="text-xl font-bold">Calculateur Brisage Dofus</h1>
+        <h1 class="text-xl font-bold">Assistofus - Brisage</h1>
     </header>
 
     <!-- Main Content -->
@@ -25,23 +25,22 @@
             <div class="relative">
                 <label for="Search" class="sr-only"> Objet </label>
 
-                <input type="text" x-model="query" @input="fetchSuggestions" id="Search" placeholder="Nom de l'objet..."
-                    class="w-full rounded-md border-gray-200 py-2.5 pe-10 shadow-sm sm:text-sm" />
+                <input type="text" x-model="query" @input.debounce="fetchSuggestions" id="Search"
+                    placeholder="Nom de l'objet..."
+                    class="w-full bg-transparent placeholder:text-slate-400 text-slate-700 text-sm border border-slate-200 rounded-md pl-3 pr-10 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow" />
 
-                <span class="absolute inset-y-0 end-0 grid w-10 place-content-center">
-                    <button type="button" class="text-gray-600 hover:text-gray-700">
-                        <span class="sr-only">Objet</span>
-                        <svg class="size-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                            fill="none" viewBox="0 0 24 24">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="1.5" d="M6 18 17.94 6M18 18 6.06 6" />
-                        </svg>
+                <button type="button" @click="query=''"
+                    class="absolute right-1 top-1 p-1 text-gray-600 hover:text-gray-700">
+                    <svg class="size-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                        fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M6 18 17.94 6M18 18 6.06 6" />
+                    </svg>
 
-                    </button>
-                </span>
+                </button>
             </div>
             <!-- Suggestions dropdown -->
-            <div x-show="suggestions.length > 0" class="mt-2">
+            <div x-show="suggestions.length > 0 && query != ''" class="mt-2">
                 <ul class="bg-white border border-gray-300 rounded shadow-lg">
                     <template x-for="suggestion in suggestions" :key="suggestion.id">
                         <li class="p-2 hover:bg-gray-100 cursor-pointer flex items-center border-b border-gray-300"
@@ -217,7 +216,7 @@
             // Enrich characteristics
             fetchStats(suggestion)
                 .then((stats) => {
-                    this.query = suggestion.name.fr;
+                    this.query = ''
                     this.suggestions = [];
                     this.selectedItem = suggestion
                     this.itemStats = stats
