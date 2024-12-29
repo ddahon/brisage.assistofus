@@ -11,17 +11,18 @@
     <!-- Alpine.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@latest/dist/cdn.min.js" defer></script>
 </head>
+<!-- Header -->
 
-<body class="bg-gray-100">
+<body class="flex flex-col min-h-screen bg-gray-100">
     <!-- Header -->
     <header class="bg-blue-600 text-white p-4">
         <h1 class="text-xl font-bold">Assistofus - Brisage</h1>
     </header>
 
     <!-- Main Content -->
-    <main x-data="main" class="flex flex-col items-center  min-h-screen">
+    <main x-data="main" class="flex flex-col items-center flex-grow">
         <!-- Searchbar -->
-        <div class="mt-44 mb-12 w-1/2">
+        <div class="mt-16 mb-8 w-1/2">
             <div class="relative">
                 <label for="Search" class="sr-only"> Objet </label>
 
@@ -59,7 +60,7 @@
             <div class="border shadow-lg rounded-lg bg-gray-600 border-gray-300 text-white">
                 <div class="flex flex-row p-4 items-center justify-between border-b-gray-300 border-b h-32">
                     <h2 x-text="selectedItem?.name?.fr"></h2>
-                    <img :src="selectedItem?.img" class="bg-gray-800 p-3 ml-3">
+                    <img :src="selectedItem?.img" class="bg-gray-800 p-3 ml-3 max-w-full max-h-full object-contain">
                 </div>
                 <label for="nofocus"
                     :class="`${focusedStat == null ? 'bg-green-500' : ''} pr-36 pl-6 py-2 hover:bg-green-500 cursor-pointer flex items-center`">
@@ -104,11 +105,11 @@
     </main>
 
     <!-- Footer -->
-    <footer class=" bg-blue-600 text-white p-4 mt-auto">
-        <p class="text-center">2024 &copy; Assistofus. Certaines illustrations sont la propriété d'Ankama Studio et de
+    <footer class="bg-blue-600 text-white p-4">
+        <p class="text-center">2024 &copy; Assistofus. Certaines illustrations sont la propriété d'Ankama Studio et
+            de
             Dofus - Tous droits réservés.</p>
     </footer>
-
     <script>
         function isFocusable(stat) {
             return stat.roll > 0 && this.itemStats.filter(x => x.roll > 0).length > 1
